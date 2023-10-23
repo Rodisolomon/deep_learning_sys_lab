@@ -175,7 +175,6 @@ class GPT(nn.Module):
         pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
 
         if self.config.activation: 
-            print("activation checkpoint is utilized")
             # forward the GPT model itself using activation checkpointing
             tok_emb = checkpoint(self.transformer.wte, idx) # token embeddings of shape (b, t, n_embd)
             pos_emb = checkpoint(self.transformer.wpe, pos) # position embeddings of shape (t, n_embd)
@@ -184,7 +183,6 @@ class GPT(nn.Module):
                 x = checkpoint(block, x)
             x = checkpoint(self.transformer.ln_f, x)
         else:
-            print("NO activation checkpoint is utilized")
             # forward the GPT model itself
             tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
             pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
