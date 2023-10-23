@@ -32,6 +32,7 @@ from model import GPTConfig, GPT
 # -----------------------------------------------------------------------------
 # defined by helen for deep learning system lab
 activation = False #if true, using activation checkpoint technique
+optimizer = 'ADAM' #if SGD then use that instead
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -196,7 +197,7 @@ model.to(device)
 scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
 
 # optimizer
-optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta2), device_type)
+optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta2), device_type, optimizer)
 if init_from == 'resume':
     optimizer.load_state_dict(checkpoint['optimizer'])
 checkpoint = None # free up memory
