@@ -32,7 +32,7 @@ from model import GPTConfig, GPT
 # -----------------------------------------------------------------------------
 # defined by helen for deep learning system lab
 activation = False #if true, using activation checkpoint technique
-optimizer = 'ADAM' #if SGD then use that instead
+optimizer = 'fused_ADAM' #if SGD then use that instead
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
