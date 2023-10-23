@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
@@ -114,6 +115,7 @@ class GPTConfig:
     n_embd: int = 768
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    activation: bool = False
 
 class GPT(nn.Module):
 
@@ -122,7 +124,8 @@ class GPT(nn.Module):
         assert config.vocab_size is not None
         assert config.block_size is not None
         self.config = config
-
+        print(config)
+        print(self.config.activation)
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.n_embd),
             wpe = nn.Embedding(config.block_size, config.n_embd),
@@ -174,6 +177,7 @@ class GPT(nn.Module):
         pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
 
         if self.config.activation: 
+            print("activation checkpoint is utilized")
             # forward the GPT model itself using activation checkpointing
             tok_emb = checkpoint(self.transformer.wte, idx) # token embeddings of shape (b, t, n_embd)
             pos_emb = checkpoint(self.transformer.wpe, pos) # position embeddings of shape (t, n_embd)
@@ -182,6 +186,7 @@ class GPT(nn.Module):
                 x = checkpoint(block, x)
             x = checkpoint(self.transformer.ln_f, x)
         else:
+            print("NO activation checkpoint is utilized")
             # forward the GPT model itself
             tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
             pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
