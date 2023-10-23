@@ -173,13 +173,22 @@ class GPT(nn.Module):
         assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
         pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
 
-        # forward the GPT model itself
-        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
-        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
-        x = self.transformer.drop(tok_emb + pos_emb)
-        for block in self.transformer.h:
-            x = block(x)
-        x = self.transformer.ln_f(x)
+        if self.config.activation: 
+            # forward the GPT model itself using activation checkpointing
+            tok_emb = checkpoint(self.transformer.wte, idx) # token embeddings of shape (b, t, n_embd)
+            pos_emb = checkpoint(self.transformer.wpe, pos) # position embeddings of shape (t, n_embd)
+            x = checkpoint(self.transformer.drop, tok_emb + pos_emb)
+            for block in self.transformer.h:
+                x = checkpoint(block, x)
+            x = checkpoint(self.transformer.ln_f, x)
+        else:
+            # forward the GPT model itself
+            tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
+            pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
+            x = self.transformer.drop(tok_emb + pos_emb)
+            for block in self.transformer.h:
+                x = block(x)
+            x = self.transformer.ln_f(x)
 
         if targets is not None:
             # if we are given some desired targets also calculate the loss
