@@ -26,13 +26,14 @@ import numpy as np
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
-
+import deepspeed
 from model import GPTConfig, GPT
 
 # -----------------------------------------------------------------------------
 # defined by helen for deep learning system lab
 activation = False #if true, using activation checkpoint technique
 optimizer = 'fused_ADAM' #if SGD then use that instead
+deep_speed = False #if true, using deepspeed wrapper
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -70,6 +71,7 @@ decay_lr = True # whether to decay the learning rate
 warmup_iters = 2000 # how many steps to warm up for
 lr_decay_iters = 600000 # should be ~= max_iters per Chinchilla
 min_lr = 6e-5 # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
+
 # DDP settings
 backend = 'nccl' # 'nccl', 'gloo', etc.
 # system
@@ -147,6 +149,29 @@ if os.path.exists(meta_path):
 # model init
 model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=block_size,
                   bias=bias, vocab_size=None, dropout=dropout, activation=activation) # start with model_args from command line
+
+def create_deepspeed_config(optimizer_name, optimizer_params, scheduler_name, scheduler_params):
+    """Creates a DeepSpeed configuration file.
+    """
+    config = {}
+    config["optimizer"] = {"type":optimizer_name, "params":optimizer_params}
+    config["scheduler"] = {"type":scheduler_name, "params":scheduler_params}
+    config["scheduler_params"] = scheduler_params
+    config["offload_optimizer"] = {
+        "device": "cpu",  # Offload optimizer states to CPU
+        "pin_memory": True  # Pin optimizer states to memory
+    }
+    return config
+op_name = "Adam"
+optimizer_dict = {"lr":learning_rate, "betas":[beta1, beta2], "weight_decay":weight_decay}
+sche_name ="WarmupDecayLR"
+schedular_dict = {"warmup_min_lr":min_lr, "warmup_max_lr":lr_decay_iters, "warmup_num_steps":warmup_iters}
+deepspeed_config = create_deepspeed_config(
+    optimizer_name=op_name, 
+    optimizer_params=optimizer_dict, 
+    scheduler_name=sche_name, 
+    scheduler_params=schedular_dict)
+
 if init_from == 'scratch':
     # init a new model from scratch
     print("Initializing a new model from scratch")
@@ -154,8 +179,15 @@ if init_from == 'scratch':
     if meta_vocab_size is None:
         print("defaulting to vocab_size of GPT-2 to 50304 (50257 rounded up for efficiency)")
     model_args['vocab_size'] = meta_vocab_size if meta_vocab_size is not None else 50304
-    gptconf = GPTConfig(**model_args)
-    model = GPT(gptconf)
+    if deep_speed:
+        print("apply deepspeed for parameter offloading")
+        gptconf = GPTConfig(**model_args)
+        model = GPT(gptconf)
+        deepspeed_config = create_deepspeed_config("Adam", learning_rate)
+        model, _, _, _ = deepspeed.ops.deepspeed.initialize(model=model, config_params=deepspeed_config)
+    else:
+        gptconf = GPTConfig(**model_args)
+        model = GPT(gptconf)
 elif init_from == 'resume':
     print(f"Resuming training from {out_dir}")
     # resume training from a checkpoint.
