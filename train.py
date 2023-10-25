@@ -183,7 +183,6 @@ if init_from == 'scratch':
         print("apply deepspeed for parameter offloading")
         gptconf = GPTConfig(**model_args)
         model = GPT(gptconf)
-        deepspeed_config = create_deepspeed_config("Adam", learning_rate)
         model, _, _, _ = deepspeed.ops.deepspeed.initialize(model=model, config_params=deepspeed_config)
     else:
         gptconf = GPTConfig(**model_args)
