@@ -162,7 +162,7 @@ def create_deepspeed_config(optimizer_name, optimizer_params, scheduler_name, sc
         "pin_memory": True  # Pin optimizer states to memory
     }
     config["train_batch_size"] = train_batch_size
-    config["gradient_accumulation_steps"] = gradient_accumulation_steps,
+    config["gradient_accumulation_steps"] = gradient_accumulation_steps
     config["block_size"] = block_size
     return config
 op_name = "Adam"
