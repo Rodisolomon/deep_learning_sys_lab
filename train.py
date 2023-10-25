@@ -150,7 +150,7 @@ if os.path.exists(meta_path):
 model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=block_size,
                   bias=bias, vocab_size=None, dropout=dropout, activation=activation) # start with model_args from command line
 
-def create_deepspeed_config(optimizer_name, optimizer_params, scheduler_name, scheduler_params, train_batch_size, block_size, gradient_accumulation_steps):
+def create_deepspeed_config(optimizer_name, optimizer_params, scheduler_name, scheduler_params, train_batch_size, block_size):
     """Creates a DeepSpeed configuration file.
     """
     config = {}
@@ -162,7 +162,7 @@ def create_deepspeed_config(optimizer_name, optimizer_params, scheduler_name, sc
         "pin_memory": True  # Pin optimizer states to memory
     }
     config["train_batch_size"] = train_batch_size
-    config["gradient_accumulation_steps"] = gradient_accumulation_steps
+    config["train_micro_batch_size_per_gpu"] = train_batch_size
     config["block_size"] = block_size
     return config
 op_name = "Adam"
@@ -176,7 +176,6 @@ deepspeed_config = create_deepspeed_config(
     scheduler_params=schedular_dict,
     train_batch_size=batch_size,
     block_size=block_size,
-    gradient_accumulation_steps=gradient_accumulation_steps
     )
 
 if init_from == 'scratch':
