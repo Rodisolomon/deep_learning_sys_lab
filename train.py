@@ -71,6 +71,7 @@ decay_lr = True # whether to decay the learning rate
 warmup_iters = 2000 # how many steps to warm up for
 lr_decay_iters = 600000 # should be ~= max_iters per Chinchilla
 min_lr = 6e-5 # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
+schedular_dict = {"warmup_min_lr":min_lr, "total_num_steps":max_iters, "warmup_max_lr":learning_rate, "warmup_num_steps":warmup_iters}
 
 # DDP settings
 backend = 'nccl' # 'nccl', 'gloo', etc.
