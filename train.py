@@ -56,7 +56,7 @@ block_size = 1024
 # model
 n_layer = 12
 n_head = 12
-n_embd = 768
+n_embd = 384
 dropout = 0.0 # for pretraining 0 is good, for finetuning try 0.1+
 bias = False # do we use bias inside LayerNorm and Linear layers?
 # adamw optimizer
@@ -230,7 +230,7 @@ try:
         model.crop_block_size(block_size)
         model_args['block_size'] = block_size # so that the checkpoint will have the right value
 except:
-    a = -1
+    a = -1 #placeholder
 model.to(device)
 
 # initialize a GradScaler. If enabled=False scaler is a no-op
